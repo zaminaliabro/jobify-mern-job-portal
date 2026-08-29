@@ -5,11 +5,6 @@ import { getErrorMessage } from "../services/api.js";
 import Alert from "../components/Alert.jsx";
 import AuthLayout from "../components/AuthLayout.jsx";
 
-const demoAccounts = [
-  { label: "Recruiter", email: "recruiter@jobify.com" },
-  { label: "Candidate", email: "candidate@jobify.com" },
-];
-
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
