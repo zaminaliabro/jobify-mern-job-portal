@@ -29,9 +29,9 @@ const jobTemplates = [
     skills: ["Node.js", "Express", "PostgreSQL"],
   },
   {
-    title: "PERN Stack Intern",
+    title: "MERN Stack Intern",
     description:
-      "Six-month paid internship for someone eager to learn the full PERN stack on real products.",
+      "Six-month paid internship for someone eager to learn the full MERN stack on real products.",
     location: "Remote",
     salary: 40000,
     jobType: "Internship",
