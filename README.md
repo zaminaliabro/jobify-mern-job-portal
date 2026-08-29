@@ -4,6 +4,8 @@ A full-stack job portal: candidates browse and apply to jobs, recruiters post jo
 
 **Stack:** React + Vite + Tailwind + React Router + Axios + Context API · Node + Express · PostgreSQL + Prisma · JWT + bcrypt
 
+Frontend and API deploy together as a single Vercel project.
+
 ---
 
 ## Quick start
@@ -11,18 +13,13 @@ A full-stack job portal: candidates browse and apply to jobs, recruiters post jo
 Requires Node 18+ and a PostgreSQL database (Supabase, Neon, or a local server).
 
 ```bash
-# 1. Backend
-cd server
-npm install                       # also runs `prisma generate`
-cp .env.example .env              # then fill DATABASE_URL / DIRECT_URL / JWT_SECRET
-npm run db:migrate                # creates the tables
-npm run seed                      # optional: demo users, jobs, applications
-npm run dev                       # http://localhost:5000
+npm install                  # root deps; also runs `prisma generate`
+cp .env.example .env         # then fill DATABASE_URL / DIRECT_URL / JWT_SECRET
+npm run db:migrate           # create the tables
+npm run seed                 # optional: demo users, jobs, applications
 
-# 2. Frontend (new terminal)
-cd client
-npm install
-npm run dev                       # http://localhost:5173
+npm run dev                  # API   -> http://localhost:5000
+npm run dev:client           # client -> http://localhost:5173   (second terminal)
 ```
 
 Vite proxies `/api` to `http://localhost:5000`, so no CORS setup is needed in development.
@@ -36,26 +33,29 @@ Vite proxies `/api` to `http://localhost:5000`, so no CORS setup is needed in de
 
 ---
 
-## Environment variables (`server/.env`)
+## Environment variables (`.env` at the repo root)
 
-| Key              | Notes                                                          |
-| ---------------- | -------------------------------------------------------------- |
-| `PORT`           | `5000`                                                         |
-| `DATABASE_URL`   | Pooled connection (Supabase port `6543`), used by the app       |
-| `DIRECT_URL`     | Direct connection (port `5432`), used by `prisma migrate`       |
-| `JWT_SECRET`     | Any long random string                                          |
-| `JWT_EXPIRES_IN` | `7d`                                                            |
-| `CLIENT_URL`     | CORS allowlist — one origin, or several separated by commas     |
+| Key              | Notes                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| `PORT`           | `5000` — local API only; Vercel assigns its own                     |
+| `DATABASE_URL`   | Supabase **session-mode pooler** URI, port `5432`                   |
+| `DIRECT_URL`     | The same URI — Prisma uses it for migrations                        |
+| `JWT_SECRET`     | Any long random string                                              |
+| `JWT_EXPIRES_IN` | `7d`                                                                |
+| `CLIENT_URL`     | CORS allowlist. Empty allows any origin; unused when same-origin    |
 
-Prisma needs both URLs on Supabase: pgbouncer (the pooled URL) cannot run the DDL
-that migrations require, so schema changes go over `DIRECT_URL` while the running
-app uses the pool.
+Two Supabase hosts to avoid:
+
+- `db.<ref>.supabase.co` resolves to **IPv6 only** and is unreachable from IPv4-only networks (`P1001: Can't reach database server`).
+- The **transaction pooler** on port `6543` stalls migrations.
+
+Use `aws-0-<region>.pooler.supabase.com:5432` for both variables.
 
 ### Prisma commands
 
 ```bash
 npm run db:migrate     # create + apply a migration in development
-npm run db:deploy      # apply committed migrations (used in production)
+npm run db:deploy      # apply committed migrations (used in the Vercel build)
 npm run db:generate    # regenerate the Prisma Client
 npm run db:studio      # browse the data in a GUI
 ```
@@ -119,11 +119,18 @@ Errors come back as `{ success: false, message }` with a matching HTTP status.
 
 ## Project structure
 
+One dependency tree at the root — Vercel installs once for both the API and the client build.
+
 ```
+api/
+└── index.js                      Vercel serverless entry; exports the Express app
+
 server/
 ├── prisma/
 │   ├── schema.prisma             models, enums, relations
 │   └── migrations/               generated SQL, committed
+├── app.js                        builds the Express app (no listen)
+├── server.js                     local entry: connect, then listen
 ├── config/db.js                  Prisma Client singleton + connection check
 ├── controllers/                  auth · job · application
 ├── middleware/
@@ -132,8 +139,7 @@ server/
 ├── routes/                       authRoutes · jobRoutes · applicationRoutes
 ├── utils/                        generateToken · asyncHandler
 ├── constants.js                  job types, statuses, skill parsing
-├── seed.js                       demo data
-└── server.js
+└── seed.js                       demo data
 
 client/src/
 ├── components/                   Navbar · Footer · JobCard · ProtectedRoute · Avatar
@@ -148,6 +154,8 @@ client/src/
 ├── App.jsx                       routes
 └── main.jsx
 ```
+
+`api/index.js` exports the same app that `npm run dev` runs locally, so there is one codebase for both. It performs no explicit connect step — Prisma opens its connection lazily on the first query, which is what a cold-started function needs.
 
 ---
 
@@ -167,55 +175,38 @@ Three tables, all keyed by a UUID `id`.
 
 ---
 
-## Production build
+## Deployment — Vercel
 
-```bash
-cd client && npm run build     # outputs client/dist
-cd ../server && npm start
-```
-
----
-
-## Deployment
-
-The frontend and backend deploy separately. Config for both is committed:
-`vercel.json` (frontend) and `render.yaml` (backend).
-
-### 1. Database — Supabase
-
-Create a project, then **Project Settings → Database → Connection string**. Copy
-both the pooled URI (port `6543`) and the direct URI (port `5432`).
-
-### 2. Backend — Render
-
-**New → Blueprint**, pick this repo. Render reads `render.yaml`: it builds from
-`server/`, runs `prisma migrate deploy`, and generates a secure `JWT_SECRET`.
-Fill three values in the dashboard:
-
-| Variable       | Value                                                     |
-| -------------- | --------------------------------------------------------- |
-| `DATABASE_URL` | Supabase pooled URI (`6543`)                               |
-| `DIRECT_URL`   | Supabase direct URI (`5432`)                               |
-| `CLIENT_URL`   | your Vercel URL — comma-separated to allow several origins |
-
-`CLIENT_URL` drives the CORS allowlist. Leave it unset only in development, where
-an empty value allows every origin.
-
-### 3. Frontend — Vercel
-
-`vercel.json` at the repo root points the build at `client/` and rewrites
-non-API paths to `index.html`, so client-side routes survive a refresh. Add one
-environment variable in **Settings → Environment Variables**:
+Frontend and API ship as one project, so they share an origin: the browser calls `/api/...` directly, and neither CORS config nor a `VITE_API_URL` is needed.
 
 ```
-VITE_API_URL = https://<your-service>.onrender.com/api
+vercel.json
+├── buildCommand      npm run vercel-build
+│                     -> prisma generate, prisma migrate deploy, vite build
+├── outputDirectory   client/dist        static site
+├── functions         api/index.js       the Express app, serverless
+└── rewrites          /api/*  -> the function
+                      /*      -> index.html   (SPA routes survive a refresh)
 ```
 
-Then **redeploy** — Vite bakes env vars in at build time, so adding the variable
-alone will not change an existing build.
+### Setup
+
+1. **Database** — create a Supabase project. Under **Project Settings → Database → Connection string**, copy the session-mode pooler URI (`aws-0-<region>.pooler.supabase.com:5432`). See the host warnings above.
+
+2. **Vercel** — import the repo, then add these under **Settings → Environment Variables** for Production, Preview and Development:
+
+   | Variable       | Value                       |
+   | -------------- | --------------------------- |
+   | `DATABASE_URL` | Supabase session-pooler URI |
+   | `DIRECT_URL`   | the same URI                |
+   | `JWT_SECRET`   | a long random string        |
+
+   Leave `CLIENT_URL` unset — same origin, nothing to allowlist.
+
+3. **Deploy.** The build runs `prisma migrate deploy`, so the schema is applied automatically.
 
 ### Notes
 
-- Generate a fresh `JWT_SECRET` for production; never reuse the development one.
-- Render's free tier sleeps after ~15 minutes idle, so the first request is slow.
-- Prefer a single host? Serve `client/dist` from Express and skip Vercel entirely.
+- Generate a fresh `JWT_SECRET` for production; never reuse a development one.
+- Serverless functions cold-start, so the first request after an idle period is slower.
+- If you outgrow the session pooler's connection limit, point `DATABASE_URL` at the transaction pooler (`:6543` with `?pgbouncer=true`) and keep `DIRECT_URL` on `:5432` for migrations.
