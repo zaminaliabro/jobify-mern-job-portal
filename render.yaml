@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: jobify-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Generated once by Render and kept secret.
+      - key: JWT_SECRET
+        generateValue: true
+
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # Set these in the Render dashboard after the first deploy.
+      #   MONGO_URI  -> your MongoDB Atlas connection string
+      #   CLIENT_URL -> your Vercel URL (comma-separated for several origins)
+      - key: MONGO_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false

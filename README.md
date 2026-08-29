@@ -146,4 +146,47 @@ cd client && npm run build     # outputs client/dist
 cd ../server && npm start
 ```
 
-Serve `client/dist` from any static host (Vercel, Netlify) and point it at the API with `VITE_API_URL=https://your-api.com/api`, or serve it from Express itself.
+---
+
+## Deployment
+
+The frontend and backend deploy separately. Config for both is committed:
+`vercel.json` (frontend) and `render.yaml` (backend).
+
+### 1. Database — MongoDB Atlas
+
+Create a free cluster, add a database user, and under **Network Access** allow
+`0.0.0.0/0` so your host can reach it. Copy the connection string.
+
+### 2. Backend — Render
+
+Render reads `render.yaml` automatically: **New → Blueprint**, pick this repo.
+It builds from `server/`, generates a secure `JWT_SECRET` for you, and leaves two
+values for you to fill in the dashboard:
+
+| Variable     | Value                                                     |
+| ------------ | --------------------------------------------------------- |
+| `MONGO_URI`  | your Atlas connection string                               |
+| `CLIENT_URL` | your Vercel URL — comma-separated to allow several origins |
+
+`CLIENT_URL` drives the CORS allowlist. Leave it unset only in development, where
+an empty value allows every origin.
+
+### 3. Frontend — Vercel
+
+`vercel.json` at the repo root points the build at `client/` and rewrites
+non-API paths to `index.html`, so client-side routes survive a refresh. Add one
+environment variable in **Settings → Environment Variables**:
+
+```
+VITE_API_URL = https://<your-service>.onrender.com/api
+```
+
+Then **redeploy** — Vite bakes env vars in at build time, so adding the variable
+alone will not change an existing build.
+
+### Notes
+
+- Generate a fresh `JWT_SECRET` for production; never reuse the development one.
+- Render's free tier sleeps after ~15 minutes idle, so the first request is slow.
+- Prefer a single host? Serve `client/dist` from Express and skip Vercel entirely.
