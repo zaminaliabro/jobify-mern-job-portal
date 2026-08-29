@@ -1,44 +1,69 @@
 import { Link } from "react-router-dom";
+import Avatar from "./Avatar.jsx";
+import { MapPinIcon, WalletIcon, ClockIcon } from "./Icons.jsx";
+import { formatSalary, timeAgo } from "../utils/format.js";
 
-export const formatSalary = (salary) =>
-  salary ? `PKR ${Number(salary).toLocaleString()}` : "Not disclosed";
+const typeTone = {
+  "Full-time": "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  "Part-time": "bg-violet-50 text-violet-700 ring-violet-600/20",
+  Internship: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  Contract: "bg-cyan-50 text-cyan-700 ring-cyan-600/20",
+  Remote: "bg-brand-50 text-brand-700 ring-brand-600/20",
+};
 
 const JobCard = ({ job }) => (
-  <article className="card transition hover:shadow-md">
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
-        <p className="text-sm text-slate-500">
-          {job.company} · {job.location}
-        </p>
+  <article className="card group relative flex flex-col p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift">
+    <div className="flex items-start gap-3.5">
+      <Avatar name={job.company} size="md" />
+
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-[15px] font-semibold text-ink-900 transition group-hover:text-brand-700">
+          <Link to={`/jobs/${job._id}`} className="before:absolute before:inset-0">
+            {job.title}
+          </Link>
+        </h3>
+        <p className="mt-0.5 truncate text-sm text-ink-500">{job.company}</p>
       </div>
-      <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
+
+      <span
+        className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold ring-1 ring-inset ${
+          typeTone[job.jobType] || typeTone["Full-time"]
+        }`}
+      >
         {job.jobType}
       </span>
     </div>
 
-    <p className="mt-3 line-clamp-2 text-sm text-slate-600">{job.description}</p>
+    <p className="mt-3.5 line-clamp-2 text-sm leading-relaxed text-ink-500">
+      {job.description}
+    </p>
 
     {job.skills?.length > 0 && (
-      <div className="mt-3 flex flex-wrap gap-2">
-        {job.skills.slice(0, 5).map((skill) => (
-          <span
-            key={skill}
-            className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600"
-          >
+      <div className="mt-3.5 flex flex-wrap gap-1.5">
+        {job.skills.slice(0, 4).map((skill) => (
+          <span key={skill} className="chip">
             {skill}
           </span>
         ))}
+        {job.skills.length > 4 && (
+          <span className="chip text-ink-400">+{job.skills.length - 4}</span>
+        )}
       </div>
     )}
 
-    <div className="mt-4 flex items-center justify-between">
-      <span className="text-sm font-medium text-slate-700">
+    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-4">
+      <span className="meta">
+        <MapPinIcon size={14} className="text-ink-400" />
+        {job.location}
+      </span>
+      <span className="meta font-semibold text-ink-700">
+        <WalletIcon size={14} className="text-ink-400" />
         {formatSalary(job.salary)}
       </span>
-      <Link to={`/jobs/${job._id}`} className="btn-primary">
-        View details
-      </Link>
+      <span className="meta ml-auto text-ink-400">
+        <ClockIcon size={14} />
+        {timeAgo(job.createdAt)}
+      </span>
     </div>
   </article>
 );

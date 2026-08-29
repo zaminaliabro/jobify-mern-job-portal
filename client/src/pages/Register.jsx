@@ -3,6 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getErrorMessage } from "../services/api.js";
 import Alert from "../components/Alert.jsx";
+import AuthLayout from "../components/AuthLayout.jsx";
+import { BuildingIcon, UserIcon } from "../components/Icons.jsx";
+
+const roles = [
+  {
+    value: "candidate",
+    label: "I'm looking for a job",
+    icon: UserIcon,
+  },
+  {
+    value: "recruiter",
+    label: "I'm hiring",
+    icon: BuildingIcon,
+  },
+];
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -34,100 +49,115 @@ const Register = () => {
   };
 
   return (
-    <div className="mx-auto max-w-md">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Hire talent or find your next role.
-        </p>
+    <AuthLayout
+      title="Create your account"
+      subtitle="It takes less than a minute — and it's free."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Alert type="error" message={error} />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <Alert type="error" message={error} />
-
-          <div>
-            <label className="label" htmlFor="name">
-              Full name
-            </label>
-            <input
-              id="name"
-              name="name"
-              className="input"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className="input"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="input"
-              minLength={6}
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <span className="label">I am a</span>
-            <div className="grid grid-cols-2 gap-3">
-              {["candidate", "recruiter"].map((role) => (
-                <label
-                  key={role}
-                  className={`cursor-pointer rounded-lg border px-3 py-2 text-center text-sm capitalize transition ${
-                    form.role === role
-                      ? "border-brand-500 bg-brand-50 text-brand-600"
-                      : "border-slate-300 text-slate-600 hover:bg-slate-50"
+        <div>
+          <span className="label">I am here to…</span>
+          <div className="grid grid-cols-2 gap-2.5">
+            {roles.map(({ value, label, icon: IconCmp }) => (
+              <label
+                key={value}
+                className={`cursor-pointer rounded-xl border p-3 text-center transition ${
+                  form.role === value
+                    ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/15"
+                    : "border-ink-200 hover:border-ink-300 hover:bg-ink-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={value}
+                  checked={form.role === value}
+                  onChange={handleChange}
+                  className="sr-only"
+                />
+                <IconCmp
+                  size={20}
+                  className={`mx-auto ${
+                    form.role === value ? "text-brand-600" : "text-ink-400"
+                  }`}
+                />
+                <span
+                  className={`mt-2 block text-[13px] font-medium ${
+                    form.role === value ? "text-brand-700" : "text-ink-600"
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="role"
-                    value={role}
-                    checked={form.role === role}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  {role}
-                </label>
-              ))}
-            </div>
+                  {label}
+                </span>
+              </label>
+            ))}
           </div>
+        </div>
 
-          <button type="submit" className="btn-primary w-full" disabled={submitting}>
-            {submitting ? "Creating account..." : "Register"}
-          </button>
-        </form>
+        <div>
+          <label className="label" htmlFor="name">
+            Full name
+          </label>
+          <input
+            id="name"
+            name="name"
+            autoComplete="name"
+            className="input"
+            placeholder="Bilal Ahmed"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Already registered?{" "}
-          <Link to="/login" className="font-medium text-brand-600">
-            Login
-          </Link>
-        </p>
-      </div>
-    </div>
+        <div>
+          <label className="label" htmlFor="email">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            className="input"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="label" htmlFor="password">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            className="input"
+            placeholder="At least 6 characters"
+            minLength={6}
+            value={form.password}
+            onChange={handleChange}
+            required
+          />
+          <p className="hint">Minimum 6 characters.</p>
+        </div>
+
+        <button type="submit" className="btn-primary w-full" disabled={submitting}>
+          {submitting ? "Creating account…" : "Create account"}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-ink-500">
+        Already registered?{" "}
+        <Link to="/login" className="link">
+          Login
+        </Link>
+      </p>
+    </AuthLayout>
   );
 };
 

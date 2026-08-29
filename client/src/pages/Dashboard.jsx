@@ -1,156 +1,242 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  applicationApi,
-  jobApi,
-  getErrorMessage,
-} from "../services/api.js";
+import { applicationApi, jobApi, getErrorMessage } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import Avatar from "../components/Avatar.jsx";
 import StatCard from "../components/StatCard.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import Loader from "../components/Loader.jsx";
 import Alert from "../components/Alert.jsx";
-import { formatSalary } from "../components/JobCard.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import { StatsSkeleton, TableSkeleton } from "../components/Skeleton.jsx";
+import {
+  BriefcaseIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  FileIcon,
+  MapPinIcon,
+  PencilIcon,
+  PlusIcon,
+  SparkIcon,
+  TrashIcon,
+  UsersIcon,
+} from "../components/Icons.jsx";
+import { formatSalary, formatDate, timeAgo } from "../utils/format.js";
+
+/* ------------------------------------------------------------------ */
+/*  Candidate                                                          */
+/* ------------------------------------------------------------------ */
 
 const CandidateDashboard = ({ stats, applications }) => (
   <>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <StatCard label="Total Applications" value={stats.totalApplications} />
-      <StatCard label="Pending" value={stats.pending} accent="text-slate-600" />
-      <StatCard label="Shortlisted" value={stats.shortlisted} accent="text-amber-600" />
-      <StatCard label="Interview" value={stats.interview} accent="text-brand-600" />
-      <StatCard label="Hired" value={stats.hired} accent="text-emerald-600" />
+      <StatCard
+        label="Applications"
+        value={stats.totalApplications}
+        icon={FileIcon}
+        tone="brand"
+      />
+      <StatCard label="Pending" value={stats.pending} icon={ClockIcon} />
+      <StatCard
+        label="Shortlisted"
+        value={stats.shortlisted}
+        icon={SparkIcon}
+        tone="amber"
+      />
+      <StatCard
+        label="Interview"
+        value={stats.interview}
+        icon={UsersIcon}
+        tone="brand"
+      />
+      <StatCard
+        label="Hired"
+        value={stats.hired}
+        icon={CheckCircleIcon}
+        tone="emerald"
+      />
     </div>
 
     <section className="mt-8">
-      <h2 className="text-lg font-semibold text-slate-900">My applications</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold">My applications</h2>
+        <Link to="/jobs" className="link text-sm">
+          Find more jobs
+        </Link>
+      </div>
 
       {applications.length === 0 ? (
-        <div className="card mt-4 text-center text-sm text-slate-500">
-          You have not applied to any job yet.{" "}
-          <Link to="/jobs" className="font-medium text-brand-600">
-            Browse jobs
-          </Link>
-        </div>
+        <EmptyState
+          icon={FileIcon}
+          title="No applications yet"
+          description="Browse open roles and apply — everything you send shows up here."
+          action={
+            <Link to="/jobs" className="btn-primary">
+              Browse jobs
+            </Link>
+          }
+        />
       ) : (
-        <div className="card mt-4 overflow-x-auto p-0">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-5 py-3">Job</th>
-                <th className="px-5 py-3">Company</th>
-                <th className="px-5 py-3">Applied on</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((app) => (
-                <tr key={app._id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-5 py-3 font-medium text-slate-800">
-                    {app.job ? (
-                      <Link to={`/jobs/${app.job._id}`} className="hover:text-brand-600">
-                        {app.job.title}
-                      </Link>
-                    ) : (
-                      <span className="text-slate-400">Job removed</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{app.job?.company || "—"}</td>
-                  <td className="px-5 py-3 text-slate-500">
-                    {new Date(app.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-5 py-3">
-                    <StatusBadge status={app.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="card divide-y divide-ink-100">
+          {applications.map((app) => (
+            <div
+              key={app._id}
+              className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-ink-50/60"
+            >
+              <Avatar name={app.job?.company || "?"} size="sm" />
+
+              <div className="min-w-0 flex-1">
+                {app.job ? (
+                  <Link
+                    to={`/jobs/${app.job._id}`}
+                    className="truncate text-sm font-semibold text-ink-900 hover:text-brand-600"
+                  >
+                    {app.job.title}
+                  </Link>
+                ) : (
+                  <span className="text-sm font-semibold text-ink-400">
+                    Job no longer available
+                  </span>
+                )}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="text-xs text-ink-500">{app.job?.company || "—"}</span>
+                  {app.job?.location && (
+                    <span className="meta text-xs">
+                      <MapPinIcon size={12} className="text-ink-400" />
+                      {app.job.location}
+                    </span>
+                  )}
+                  <span className="meta text-xs text-ink-400">
+                    <ClockIcon size={12} />
+                    Applied {timeAgo(app.createdAt)}
+                  </span>
+                </div>
+              </div>
+
+              <StatusBadge status={app.status} />
+            </div>
+          ))}
         </div>
       )}
     </section>
   </>
 );
 
+/* ------------------------------------------------------------------ */
+/*  Recruiter                                                          */
+/* ------------------------------------------------------------------ */
+
 const RecruiterDashboard = ({ stats, jobs, onDelete }) => (
   <>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard label="Jobs Posted" value={stats.jobsPosted} />
-      <StatCard label="Total Applicants" value={stats.totalApplicants} />
-      <StatCard label="Shortlisted" value={stats.shortlisted} accent="text-amber-600" />
-      <StatCard label="Hired" value={stats.hired} accent="text-emerald-600" />
+      <StatCard
+        label="Jobs posted"
+        value={stats.jobsPosted}
+        icon={BriefcaseIcon}
+        tone="brand"
+      />
+      <StatCard label="Total applicants" value={stats.totalApplicants} icon={UsersIcon} />
+      <StatCard
+        label="Shortlisted"
+        value={stats.shortlisted}
+        icon={SparkIcon}
+        tone="amber"
+      />
+      <StatCard
+        label="Hired"
+        value={stats.hired}
+        icon={CheckCircleIcon}
+        tone="emerald"
+      />
     </div>
 
     <section className="mt-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">My job posts</h2>
-        <Link to="/jobs/new" className="btn-primary">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold">My job posts</h2>
+        <Link to="/jobs/new" className="btn-primary btn-sm">
+          <PlusIcon size={15} />
           Post a job
         </Link>
       </div>
 
       {jobs.length === 0 ? (
-        <div className="card mt-4 text-center text-sm text-slate-500">
-          No jobs posted yet. Create your first opening.
-        </div>
+        <EmptyState
+          icon={BriefcaseIcon}
+          title="No jobs posted yet"
+          description="Create your first opening and start receiving applications."
+          action={
+            <Link to="/jobs/new" className="btn-primary">
+              <PlusIcon size={15} />
+              Post your first job
+            </Link>
+          }
+        />
       ) : (
-        <div className="card mt-4 overflow-x-auto p-0">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-5 py-3">Title</th>
-                <th className="px-5 py-3">Location</th>
-                <th className="px-5 py-3">Salary</th>
-                <th className="px-5 py-3">Applicants</th>
-                <th className="px-5 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr key={job._id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-5 py-3 font-medium text-slate-800">
-                    <Link to={`/jobs/${job._id}`} className="hover:text-brand-600">
-                      {job.title}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{job.location}</td>
-                  <td className="px-5 py-3 text-slate-600">{formatSalary(job.salary)}</td>
-                  <td className="px-5 py-3">
-                    <span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600">
-                      {job.applicantCount}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Link
-                        to={`/jobs/${job._id}/applicants`}
-                        className="text-xs font-medium text-brand-600 hover:underline"
-                      >
-                        Applicants
-                      </Link>
-                      <Link
-                        to={`/jobs/${job._id}/edit`}
-                        className="text-xs font-medium text-slate-600 hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => onDelete(job._id)}
-                        className="text-xs font-medium text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="card divide-y divide-ink-100">
+          {jobs.map((job) => (
+            <div
+              key={job._id}
+              className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-ink-50/60"
+            >
+              <Avatar name={job.company} size="sm" />
+
+              <div className="min-w-0 flex-1">
+                <Link
+                  to={`/jobs/${job._id}`}
+                  className="truncate text-sm font-semibold text-ink-900 hover:text-brand-600"
+                >
+                  {job.title}
+                </Link>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="meta text-xs">
+                    <MapPinIcon size={12} className="text-ink-400" />
+                    {job.location}
+                  </span>
+                  <span className="text-xs font-medium text-ink-600">
+                    {formatSalary(job.salary)}
+                  </span>
+                  <span className="text-xs text-ink-400">
+                    Posted {formatDate(job.createdAt)}
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                to={`/jobs/${job._id}/applicants`}
+                className={`pill transition ${
+                  job.applicantCount > 0
+                    ? "bg-brand-50 text-brand-700 hover:bg-brand-100"
+                    : "bg-ink-100 text-ink-500"
+                }`}
+              >
+                <UsersIcon size={13} />
+                {job.applicantCount} applicant{job.applicantCount === 1 ? "" : "s"}
+              </Link>
+
+              <div className="flex items-center gap-1">
+                <Link
+                  to={`/jobs/${job._id}/edit`}
+                  className="btn-ghost btn-sm"
+                  title="Edit job"
+                >
+                  <PencilIcon size={15} />
+                </Link>
+                <button
+                  onClick={() => onDelete(job._id)}
+                  className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50"
+                  title="Delete job"
+                >
+                  <TrashIcon size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>
   </>
 );
+
+/* ------------------------------------------------------------------ */
 
 const Dashboard = () => {
   const { user, isRecruiter } = useAuth();
@@ -202,25 +288,34 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return <Loader label="Loading dashboard..." />;
-
   return (
-    <div>
+    <div className="animate-fade-up">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <p className="text-sm text-ink-500">
           {isRecruiter ? "Recruiter dashboard" : "Candidate dashboard"}
+        </p>
+        <h1 className="mt-0.5 text-2xl font-bold">
+          Welcome back, {user.name.split(" ")[0]}
         </h1>
-        <p className="text-sm text-slate-500">Welcome back, {user.name}.</p>
       </header>
 
       <Alert type="error" message={error} />
 
-      {stats &&
+      {loading ? (
+        <>
+          <StatsSkeleton count={isRecruiter ? 4 : 5} />
+          <div className="mt-8">
+            <TableSkeleton rows={4} />
+          </div>
+        </>
+      ) : (
+        stats &&
         (isRecruiter ? (
           <RecruiterDashboard stats={stats} jobs={jobs} onDelete={handleDelete} />
         ) : (
           <CandidateDashboard stats={stats} applications={applications} />
-        ))}
+        ))
+      )}
     </div>
   );
 };

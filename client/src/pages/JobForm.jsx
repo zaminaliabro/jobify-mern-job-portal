@@ -4,7 +4,10 @@ import { jobApi, getErrorMessage } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Loader from "../components/Loader.jsx";
 import Alert from "../components/Alert.jsx";
+import Avatar from "../components/Avatar.jsx";
+import { ArrowLeftIcon, MapPinIcon, WalletIcon } from "../components/Icons.jsx";
 import { CATEGORIES, JOB_TYPES } from "../constants.js";
+import { formatSalary } from "../utils/format.js";
 
 const emptyJob = {
   title: "",
@@ -71,19 +74,32 @@ const JobForm = () => {
     }
   };
 
-  if (loading) return <Loader label="Loading job..." />;
+  if (loading) return <Loader label="Loading job…" />;
+
+  const skillList = form.skills
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-slate-900">
-          {isEdit ? "Edit job" : "Post a new job"}
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Give candidates a clear picture of the role.
-        </p>
+    <div className="animate-fade-up">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-500 transition hover:text-brand-600"
+      >
+        <ArrowLeftIcon size={15} />
+        Back
+      </button>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold">{isEdit ? "Edit job" : "Post a new job"}</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          Give candidates a clear picture of the role and what you expect.
+        </p>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_19rem]">
+        <form onSubmit={handleSubmit} className="card-p space-y-5">
           <Alert type="error" message={error} />
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -95,6 +111,7 @@ const JobForm = () => {
                 id="title"
                 name="title"
                 className="input"
+                placeholder="React Frontend Developer"
                 value={form.title}
                 onChange={handleChange}
                 required
@@ -109,6 +126,7 @@ const JobForm = () => {
                 id="company"
                 name="company"
                 className="input"
+                placeholder="Zamin Tech"
                 value={form.company}
                 onChange={handleChange}
                 required
@@ -123,8 +141,9 @@ const JobForm = () => {
             <textarea
               id="description"
               name="description"
-              rows={6}
-              className="input"
+              rows={8}
+              className="input resize-y"
+              placeholder="What the role involves, who you're looking for, and what a typical week looks like…"
               value={form.description}
               onChange={handleChange}
               required
@@ -140,6 +159,7 @@ const JobForm = () => {
                 id="location"
                 name="location"
                 className="input"
+                placeholder="Karachi"
                 value={form.location}
                 onChange={handleChange}
                 required
@@ -156,9 +176,11 @@ const JobForm = () => {
                 type="number"
                 min="0"
                 className="input"
+                placeholder="150000"
                 value={form.salary}
                 onChange={handleChange}
               />
+              <p className="hint">Leave blank to show "Not disclosed".</p>
             </div>
 
             <div>
@@ -202,7 +224,7 @@ const JobForm = () => {
 
           <div>
             <label className="label" htmlFor="skills">
-              Skills (comma separated)
+              Skills
             </label>
             <input
               id="skills"
@@ -212,17 +234,63 @@ const JobForm = () => {
               value={form.skills}
               onChange={handleChange}
             />
+            <p className="hint">Separate with commas.</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 border-t border-ink-100 pt-5">
             <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting ? "Saving..." : isEdit ? "Update job" : "Publish job"}
+              {submitting ? "Saving…" : isEdit ? "Update job" : "Publish job"}
             </button>
             <button type="button" className="btn-outline" onClick={() => navigate(-1)}>
               Cancel
             </button>
           </div>
         </form>
+
+        {/* ---------- live preview ---------- */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+            Live preview
+          </p>
+          <div className="card p-5">
+            <div className="flex items-start gap-3.5">
+              <Avatar name={form.company || "Company"} size="md" />
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-[15px] font-semibold text-ink-900">
+                  {form.title || "Job title"}
+                </h3>
+                <p className="mt-0.5 truncate text-sm text-ink-500">
+                  {form.company || "Company name"}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-3.5 line-clamp-3 text-sm leading-relaxed text-ink-500">
+              {form.description || "Your job description will appear here…"}
+            </p>
+
+            {skillList.length > 0 && (
+              <div className="mt-3.5 flex flex-wrap gap-1.5">
+                {skillList.slice(0, 4).map((skill) => (
+                  <span key={skill} className="chip">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-ink-100 pt-3.5">
+              <span className="meta">
+                <MapPinIcon size={14} className="text-ink-400" />
+                {form.location || "Location"}
+              </span>
+              <span className="meta font-semibold text-ink-700">
+                <WalletIcon size={14} className="text-ink-400" />
+                {formatSalary(form.salary)}
+              </span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

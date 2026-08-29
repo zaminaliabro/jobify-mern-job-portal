@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
@@ -15,65 +16,82 @@ import JobForm from "./pages/JobForm.jsx";
 import Applicants from "./pages/Applicants.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
-const App = () => (
-  <div className="flex min-h-screen flex-col">
-    <Navbar />
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/jobs" element={<Jobs />} />
-        <Route path="/jobs/:id" element={<JobDetails />} />
+// Pages that render their own full-bleed layout instead of the padded container.
+const FULL_BLEED = ["/", "/login", "/register"];
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs/new"
-          element={
-            <ProtectedRoute role="recruiter">
-              <JobForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs/:id/edit"
-          element={
-            <ProtectedRoute role="recruiter">
-              <JobForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs/:id/applicants"
-          element={
-            <ProtectedRoute role="recruiter">
-              <Applicants />
-            </ProtectedRoute>
-          }
-        />
+const App = () => {
+  const { pathname } = useLocation();
+  const fullBleed = FULL_BLEED.includes(pathname);
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </main>
+  return (
+    <div className="flex min-h-screen flex-col">
+      <ScrollToTop />
+      <Navbar />
 
-    <Footer />
-  </div>
-);
+      <main className={fullBleed ? "flex-1" : "container-page flex-1 py-8"}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/:id" element={<JobDetails />} />
+
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/new"
+            element={
+              <ProtectedRoute role="recruiter">
+                <JobForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id/edit"
+            element={
+              <ProtectedRoute role="recruiter">
+                <JobForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id/applicants"
+            element={
+              <ProtectedRoute role="recruiter">
+                <Applicants />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
 
 export default App;

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { authApi, getErrorMessage } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import Avatar from "../components/Avatar.jsx";
 import Alert from "../components/Alert.jsx";
+import { formatDate } from "../utils/format.js";
 
 const Profile = () => {
   const { user, updateUser, isRecruiter } = useAuth();
@@ -40,15 +42,23 @@ const Profile = () => {
     }
   };
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-slate-900">My profile</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {user.email} · <span className="capitalize">{user.role}</span>
-        </p>
+  const skillList = form.skills
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+  return (
+    <div className="animate-fade-up">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold">My profile</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          Recruiters see this information when you apply.
+        </p>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
+        {/* ---------- form ---------- */}
+        <form onSubmit={handleSubmit} className="card-p space-y-5">
           <Alert type="error" message={status.error} />
           <Alert type="success" message={status.success} />
 
@@ -91,15 +101,17 @@ const Profile = () => {
                 id="company"
                 name="company"
                 className="input"
+                placeholder="Zamin Tech"
                 value={form.company}
                 onChange={handleChange}
               />
+              <p className="hint">Used as the default company on jobs you post.</p>
             </div>
           ) : (
             <>
               <div>
                 <label className="label" htmlFor="skills">
-                  Skills (comma separated)
+                  Skills
                 </label>
                 <input
                   id="skills"
@@ -109,6 +121,16 @@ const Profile = () => {
                   value={form.skills}
                   onChange={handleChange}
                 />
+                <p className="hint">Separate with commas.</p>
+                {skillList.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {skillList.map((skill) => (
+                      <span key={skill} className="chip">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -119,10 +141,11 @@ const Profile = () => {
                   id="resume"
                   name="resume"
                   className="input"
-                  placeholder="https://drive.google.com/..."
+                  placeholder="https://drive.google.com/…"
                   value={form.resume}
                   onChange={handleChange}
                 />
+                <p className="hint">Pre-filled whenever you apply to a job.</p>
               </div>
             </>
           )}
@@ -135,13 +158,18 @@ const Profile = () => {
               id="bio"
               name="bio"
               rows={4}
-              className="input"
+              className="input resize-y"
+              placeholder={
+                isRecruiter
+                  ? "Tell candidates about your company…"
+                  : "A short intro about your experience…"
+              }
               value={form.bio}
               onChange={handleChange}
             />
           </div>
 
-          <div>
+          <div className="border-t border-ink-100 pt-5">
             <label className="label" htmlFor="password">
               New password
             </label>
@@ -149,17 +177,52 @@ const Profile = () => {
               id="password"
               name="password"
               type="password"
-              className="input"
-              placeholder="Leave blank to keep current password"
+              autoComplete="new-password"
+              className="input sm:max-w-xs"
+              placeholder="Leave blank to keep current"
               value={form.password}
               onChange={handleChange}
             />
+            <p className="hint">Minimum 6 characters if you change it.</p>
           </div>
 
           <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? "Saving..." : "Save changes"}
+            {submitting ? "Saving…" : "Save changes"}
           </button>
         </form>
+
+        {/* ---------- summary card ---------- */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="card-p text-center">
+            <Avatar name={user.name} size="lg" className="mx-auto" />
+            <h2 className="mt-3 text-base font-semibold text-ink-900">{user.name}</h2>
+            <p className="truncate text-sm text-ink-500">{user.email}</p>
+            <span className="mt-3 inline-block rounded-md bg-brand-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand-700">
+              {user.role}
+            </span>
+
+            <dl className="mt-5 space-y-2.5 border-t border-ink-100 pt-4 text-left text-[13px]">
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-400">Location</dt>
+                <dd className="truncate font-medium text-ink-700">
+                  {user.location || "—"}
+                </dd>
+              </div>
+              {isRecruiter && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-400">Company</dt>
+                  <dd className="truncate font-medium text-ink-700">
+                    {user.company || "—"}
+                  </dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-400">Member since</dt>
+                <dd className="font-medium text-ink-700">{formatDate(user.createdAt)}</dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
       </div>
     </div>
   );
