@@ -3,10 +3,11 @@ services:
     name: jobify-api
     runtime: node
     plan: free
+    # Oregon is us-west-2 — the same region as the Supabase project.
     region: oregon
     rootDir: server
-    # postinstall runs `prisma generate`; migrate deploy applies committed
-    # migrations to the Supabase database before the service starts.
+    # `npm install` triggers the postinstall hook (`prisma generate`);
+    # `migrate deploy` then applies the committed migrations.
     buildCommand: npm install && npx prisma migrate deploy
     startCommand: npm start
     healthCheckPath: /
@@ -21,10 +22,17 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
 
-      # Set these in the Render dashboard after the first deploy.
-      #   DATABASE_URL -> Supabase pooled connection string (port 6543)
-      #   DIRECT_URL   -> Supabase direct connection string (port 5432)
-      #   CLIENT_URL   -> your Vercel URL (comma-separated for several origins)
+      # Set these three in the Render dashboard.
+      #
+      # DATABASE_URL and DIRECT_URL: the Supabase session-mode pooler URI
+      #   (port 5432) — the same value for both. Migrations need session
+      #   mode, and the transaction pooler on 6543 stalls the connection.
+      #   Use the aws-0-<region>.pooler.supabase.com host: the direct
+      #   db.<ref>.supabase.co host resolves to IPv6 only and is
+      #   unreachable from IPv4-only networks.
+      #
+      # CLIENT_URL: the Vercel URL. Drives the CORS allowlist, and accepts
+      #   a comma-separated list to allow several origins.
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
