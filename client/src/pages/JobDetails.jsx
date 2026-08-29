@@ -46,7 +46,7 @@ const JobDetails = () => {
     if (user?.resume) setForm((f) => ({ ...f, resume: user.resume }));
   }, [user]);
 
-  const isOwner = isRecruiter && job?.recruiter?._id === user?._id;
+  const isOwner = isRecruiter && job?.recruiter?.id === user?.id;
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -283,13 +283,13 @@ const JobDetails = () => {
               {isOwner && (
                 <>
                   <Link
-                    to={`/jobs/${job._id}/applicants`}
+                    to={`/jobs/${job.id}/applicants`}
                     className="btn-primary w-full"
                   >
                     <UsersIcon size={15} />
                     View applicants
                   </Link>
-                  <Link to={`/jobs/${job._id}/edit`} className="btn-outline w-full">
+                  <Link to={`/jobs/${job.id}/edit`} className="btn-outline w-full">
                     <PencilIcon size={15} />
                     Edit job
                   </Link>

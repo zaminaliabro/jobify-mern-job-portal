@@ -1,8 +1,26 @@
-import Job from "../models/Job.js";
-import Application from "../models/Application.js";
+import prisma from "../config/db.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { JOB_TYPES, normalizeSkills } from "../constants.js";
 
-// @desc    Get all jobs (search + filters + pagination)
+const recruiterSelect = {
+  select: { id: true, name: true, email: true, company: true, location: true },
+};
+
+const sortMap = {
+  newest: { createdAt: "desc" },
+  oldest: { createdAt: "asc" },
+  "salary-high": { salary: "desc" },
+  "salary-low": { salary: "asc" },
+};
+
+const assertJobType = (jobType, res) => {
+  if (jobType !== undefined && !JOB_TYPES.includes(jobType)) {
+    res.status(400);
+    throw new Error(`Job type must be one of: ${JOB_TYPES.join(", ")}`);
+  }
+};
+
+// @desc    List jobs (search + filters + pagination)
 // @route   GET /api/jobs
 // @access  Public
 export const getJobs = asyncHandler(async (req, res) => {
@@ -19,45 +37,42 @@ export const getJobs = asyncHandler(async (req, res) => {
     limit = 10,
   } = req.query;
 
-  const query = {};
+  const where = {};
 
   if (search) {
-    query.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { company: { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } },
-      { skills: { $regex: search, $options: "i" } },
+    where.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { company: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+      // Scalar string lists only support exact element matching in Prisma,
+      // so a skill matches on the whole tag rather than a substring.
+      { skills: { has: search } },
     ];
   }
 
-  if (location) query.location = { $regex: location, $options: "i" };
-  if (jobType) query.jobType = jobType;
-  if (category) query.category = category;
-  if (recruiter) query.recruiter = recruiter;
+  if (location) where.location = { contains: location, mode: "insensitive" };
+  if (jobType) where.jobType = jobType;
+  if (category) where.category = category;
+  if (recruiter) where.recruiterId = recruiter;
 
   if (minSalary || maxSalary) {
-    query.salary = {};
-    if (minSalary) query.salary.$gte = Number(minSalary);
-    if (maxSalary) query.salary.$lte = Number(maxSalary);
+    where.salary = {};
+    if (minSalary) where.salary.gte = Number(minSalary);
+    if (maxSalary) where.salary.lte = Number(maxSalary);
   }
 
-  const sortMap = {
-    newest: { createdAt: -1 },
-    oldest: { createdAt: 1 },
-    "salary-high": { salary: -1 },
-    "salary-low": { salary: 1 },
-  };
-
-  const pageNum = Math.max(1, Number(page));
-  const perPage = Math.min(50, Math.max(1, Number(limit)));
+  const pageNum = Math.max(1, Number(page) || 1);
+  const perPage = Math.min(50, Math.max(1, Number(limit) || 10));
 
   const [jobs, total] = await Promise.all([
-    Job.find(query)
-      .populate("recruiter", "name email company")
-      .sort(sortMap[sort] || sortMap.newest)
-      .skip((pageNum - 1) * perPage)
-      .limit(perPage),
-    Job.countDocuments(query),
+    prisma.job.findMany({
+      where,
+      include: { recruiter: recruiterSelect },
+      orderBy: sortMap[sort] || sortMap.newest,
+      skip: (pageNum - 1) * perPage,
+      take: perPage,
+    }),
+    prisma.job.count({ where }),
   ]);
 
   res.json({
@@ -70,14 +85,14 @@ export const getJobs = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get single job
+// @desc    Single job
 // @route   GET /api/jobs/:id
 // @access  Public
 export const getJobById = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id).populate(
-    "recruiter",
-    "name email company location"
-  );
+  const job = await prisma.job.findUnique({
+    where: { id: req.params.id },
+    include: { recruiter: recruiterSelect },
+  });
 
   if (!job) {
     res.status(404);
@@ -94,16 +109,26 @@ export const createJob = asyncHandler(async (req, res) => {
   const { title, company, description, location, salary, jobType, category, skills } =
     req.body;
 
-  const job = await Job.create({
-    title,
-    company: company || req.user.company,
-    description,
-    location,
-    salary,
-    jobType,
-    category,
-    skills: normalizeSkills(skills),
-    recruiter: req.user._id,
+  if (!title || !description || !location) {
+    res.status(400);
+    throw new Error("Title, description and location are required");
+  }
+
+  assertJobType(jobType, res);
+
+  const job = await prisma.job.create({
+    data: {
+      title: String(title).trim(),
+      company: String(company || req.user.company || "").trim(),
+      description,
+      location: String(location).trim(),
+      salary: Number(salary) || 0,
+      jobType: jobType || "Full-time",
+      category: category || "Other",
+      skills: normalizeSkills(skills) ?? [],
+      recruiterId: req.user.id,
+    },
+    include: { recruiter: recruiterSelect },
   });
 
   res.status(201).json({ success: true, job });
@@ -113,55 +138,55 @@ export const createJob = asyncHandler(async (req, res) => {
 // @route   PUT /api/jobs/:id
 // @access  Private (owner recruiter)
 export const updateJob = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id);
+  const existing = await prisma.job.findUnique({ where: { id: req.params.id } });
 
-  if (!job) {
+  if (!existing) {
     res.status(404);
     throw new Error("Job not found");
   }
 
-  if (job.recruiter.toString() !== req.user._id.toString()) {
+  if (existing.recruiterId !== req.user.id) {
     res.status(403);
     throw new Error("Not authorized to update this job");
   }
 
-  const fields = [
-    "title",
-    "company",
-    "description",
-    "location",
-    "salary",
-    "jobType",
-    "category",
-  ];
-  fields.forEach((f) => {
-    if (req.body[f] !== undefined) job[f] = req.body[f];
+  assertJobType(req.body.jobType, res);
+
+  const data = {};
+  ["title", "company", "description", "location", "jobType", "category"].forEach((f) => {
+    if (req.body[f] !== undefined) data[f] = req.body[f];
   });
-  if (req.body.skills !== undefined) job.skills = normalizeSkills(req.body.skills);
+  if (req.body.salary !== undefined) data.salary = Number(req.body.salary) || 0;
 
-  const updated = await job.save();
+  const nextSkills = normalizeSkills(req.body.skills);
+  if (nextSkills !== undefined) data.skills = nextSkills;
 
-  res.json({ success: true, job: updated });
+  const job = await prisma.job.update({
+    where: { id: req.params.id },
+    data,
+    include: { recruiter: recruiterSelect },
+  });
+
+  res.json({ success: true, job });
 });
 
-// @desc    Delete job (and its applications)
+// @desc    Delete job (applications cascade in the schema)
 // @route   DELETE /api/jobs/:id
 // @access  Private (owner recruiter)
 export const deleteJob = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id);
+  const job = await prisma.job.findUnique({ where: { id: req.params.id } });
 
   if (!job) {
     res.status(404);
     throw new Error("Job not found");
   }
 
-  if (job.recruiter.toString() !== req.user._id.toString()) {
+  if (job.recruiterId !== req.user.id) {
     res.status(403);
     throw new Error("Not authorized to delete this job");
   }
 
-  await Application.deleteMany({ job: job._id });
-  await job.deleteOne();
+  await prisma.job.delete({ where: { id: job.id } });
 
   res.json({ success: true, message: "Job removed" });
 });
@@ -170,29 +195,18 @@ export const deleteJob = asyncHandler(async (req, res) => {
 // @route   GET /api/jobs/recruiter/my
 // @access  Private (recruiter)
 export const getMyJobs = asyncHandler(async (req, res) => {
-  const jobs = await Job.find({ recruiter: req.user._id }).sort({ createdAt: -1 });
-
-  const counts = await Application.aggregate([
-    { $match: { job: { $in: jobs.map((j) => j._id) } } },
-    { $group: { _id: "$job", count: { $sum: 1 } } },
-  ]);
-  const countMap = Object.fromEntries(counts.map((c) => [c._id.toString(), c.count]));
+  const jobs = await prisma.job.findMany({
+    where: { recruiterId: req.user.id },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { applications: true } } },
+  });
 
   res.json({
     success: true,
     count: jobs.length,
-    jobs: jobs.map((j) => ({
-      ...j.toObject(),
-      applicantCount: countMap[j._id.toString()] || 0,
+    jobs: jobs.map(({ _count, ...job }) => ({
+      ...job,
+      applicantCount: _count.applications,
     })),
   });
 });
-
-function normalizeSkills(skills) {
-  if (skills === undefined) return undefined;
-  if (Array.isArray(skills)) return skills.map((s) => String(s).trim()).filter(Boolean);
-  return String(skills)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}

@@ -7,24 +7,28 @@ export const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
 
-  // Bad ObjectId
-  if (err.name === "CastError" && err.kind === "ObjectId") {
-    statusCode = 404;
-    message = "Resource not found";
+  // Prisma known request errors carry a stable code.
+  switch (err.code) {
+    case "P2002": // unique constraint
+      statusCode = 400;
+      message = `Duplicate value for: ${err.meta?.target?.join(", ") || "field"}`;
+      break;
+    case "P2025": // record required but not found
+      statusCode = 404;
+      message = "Resource not found";
+      break;
+    case "P2003": // foreign key constraint
+      statusCode = 400;
+      message = "Related record does not exist";
+      break;
+    default:
+      break;
   }
 
-  // Mongoose validation
-  if (err.name === "ValidationError") {
+  // Malformed UUID or wrong argument type reaching the query engine.
+  if (err.name === "PrismaClientValidationError") {
     statusCode = 400;
-    message = Object.values(err.errors)
-      .map((e) => e.message)
-      .join(", ");
-  }
-
-  // Duplicate key
-  if (err.code === 11000) {
-    statusCode = 400;
-    message = `Duplicate value for: ${Object.keys(err.keyValue).join(", ")}`;
+    message = "Invalid request data";
   }
 
   res.status(statusCode).json({

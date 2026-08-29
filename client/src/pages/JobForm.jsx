@@ -66,7 +66,7 @@ const JobForm = () => {
       const { data } = isEdit
         ? await jobApi.update(id, payload)
         : await jobApi.create(payload);
-      navigate(`/jobs/${data.job._id}`);
+      navigate(`/jobs/${data.job.id}`);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

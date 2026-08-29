@@ -307,7 +307,7 @@ const Jobs = () => {
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 {jobs.map((job) => (
-                  <JobCard key={job._id} job={job} />
+                  <JobCard key={job.id} job={job} />
                 ))}
               </div>
 

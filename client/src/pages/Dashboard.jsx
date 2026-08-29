@@ -79,7 +79,7 @@ const CandidateDashboard = ({ stats, applications }) => (
         <div className="card divide-y divide-ink-100">
           {applications.map((app) => (
             <div
-              key={app._id}
+              key={app.id}
               className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-ink-50/60"
             >
               <Avatar name={app.job?.company || "?"} size="sm" />
@@ -87,7 +87,7 @@ const CandidateDashboard = ({ stats, applications }) => (
               <div className="min-w-0 flex-1">
                 {app.job ? (
                   <Link
-                    to={`/jobs/${app.job._id}`}
+                    to={`/jobs/${app.job.id}`}
                     className="truncate text-sm font-semibold text-ink-900 hover:text-brand-600"
                   >
                     {app.job.title}
@@ -174,14 +174,14 @@ const RecruiterDashboard = ({ stats, jobs, onDelete }) => (
         <div className="card divide-y divide-ink-100">
           {jobs.map((job) => (
             <div
-              key={job._id}
+              key={job.id}
               className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-ink-50/60"
             >
               <Avatar name={job.company} size="sm" />
 
               <div className="min-w-0 flex-1">
                 <Link
-                  to={`/jobs/${job._id}`}
+                  to={`/jobs/${job.id}`}
                   className="truncate text-sm font-semibold text-ink-900 hover:text-brand-600"
                 >
                   {job.title}
@@ -201,7 +201,7 @@ const RecruiterDashboard = ({ stats, jobs, onDelete }) => (
               </div>
 
               <Link
-                to={`/jobs/${job._id}/applicants`}
+                to={`/jobs/${job.id}/applicants`}
                 className={`pill transition ${
                   job.applicantCount > 0
                     ? "bg-brand-50 text-brand-700 hover:bg-brand-100"
@@ -214,14 +214,14 @@ const RecruiterDashboard = ({ stats, jobs, onDelete }) => (
 
               <div className="flex items-center gap-1">
                 <Link
-                  to={`/jobs/${job._id}/edit`}
+                  to={`/jobs/${job.id}/edit`}
                   className="btn-ghost btn-sm"
                   title="Edit job"
                 >
                   <PencilIcon size={15} />
                 </Link>
                 <button
-                  onClick={() => onDelete(job._id)}
+                  onClick={() => onDelete(job.id)}
                   className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50"
                   title="Delete job"
                 >
@@ -280,7 +280,7 @@ const Dashboard = () => {
     if (!window.confirm("Delete this job and all its applications?")) return;
     try {
       await jobApi.remove(jobId);
-      setJobs((prev) => prev.filter((j) => j._id !== jobId));
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
       const { data } = await applicationApi.stats();
       setStats(data.stats);
     } catch (err) {

@@ -1,43 +1,11 @@
 import dotenv from "dotenv";
-import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-import connectDB from "./config/db.js";
-import User from "./models/User.js";
-import Job from "./models/Job.js";
-import Application from "./models/Application.js";
+import prisma from "./config/db.js";
 
 dotenv.config();
 
-const recruiters = [
-  {
-    name: "Ayesha Khan",
-    email: "recruiter@jobify.com",
-    password: "password123",
-    role: "recruiter",
-    company: "Zamin Tech",
-    location: "Karachi",
-  },
-];
-
-const candidates = [
-  {
-    name: "Bilal Ahmed",
-    email: "candidate@jobify.com",
-    password: "password123",
-    role: "candidate",
-    location: "Lahore",
-    skills: ["React", "Node.js", "MongoDB"],
-    resume: "https://example.com/resume/bilal.pdf",
-  },
-  {
-    name: "Sana Malik",
-    email: "sana@jobify.com",
-    password: "password123",
-    role: "candidate",
-    location: "Islamabad",
-    skills: ["Figma", "UI Design", "CSS"],
-  },
-];
+const password = await bcrypt.hash("password123", 10);
 
 const jobTemplates = [
   {
@@ -53,17 +21,17 @@ const jobTemplates = [
   {
     title: "Node.js Backend Engineer",
     description:
-      "Design REST APIs, model data in MongoDB, and keep our services fast and reliable.",
+      "Design REST APIs, model data in PostgreSQL, and keep our services fast and reliable.",
     location: "Lahore",
     salary: 180000,
     jobType: "Full-time",
     category: "Backend",
-    skills: ["Node.js", "Express", "MongoDB"],
+    skills: ["Node.js", "Express", "PostgreSQL"],
   },
   {
-    title: "MERN Stack Intern",
+    title: "PERN Stack Intern",
     description:
-      "Six-month paid internship for someone eager to learn the full MERN stack on real products.",
+      "Six-month paid internship for someone eager to learn the full PERN stack on real products.",
     location: "Remote",
     salary: 40000,
     jobType: "Internship",
@@ -83,58 +51,88 @@ const jobTemplates = [
 ];
 
 const seed = async () => {
-  await connectDB();
+  // Applications and jobs cascade from users, but clear explicitly so the
+  // script is readable and order-independent.
+  await prisma.application.deleteMany();
+  await prisma.job.deleteMany();
+  await prisma.user.deleteMany();
 
-  await Promise.all([
-    User.deleteMany({}),
-    Job.deleteMany({}),
-    Application.deleteMany({}),
-  ]);
-
-  const createdRecruiters = await User.create(recruiters);
-  const createdCandidates = await User.create(candidates);
-  const recruiter = createdRecruiters[0];
-
-  const jobs = await Job.create(
-    jobTemplates.map((job) => ({
-      ...job,
-      company: recruiter.company,
-      recruiter: recruiter._id,
-    }))
-  );
-
-  await Application.create([
-    {
-      job: jobs[0]._id,
-      candidate: createdCandidates[0]._id,
-      resume: createdCandidates[0].resume,
-      coverLetter: "I have 3 years of React experience and would love to join.",
-      status: "Shortlisted",
+  const recruiter = await prisma.user.create({
+    data: {
+      name: "Ayesha Khan",
+      email: "recruiter@jobify.com",
+      password,
+      role: "recruiter",
+      company: "Zamin Tech",
+      location: "Karachi",
     },
-    {
-      job: jobs[1]._id,
-      candidate: createdCandidates[0]._id,
-      coverLetter: "Strong Node and MongoDB background.",
-      status: "Interview",
+  });
+
+  const bilal = await prisma.user.create({
+    data: {
+      name: "Bilal Ahmed",
+      email: "candidate@jobify.com",
+      password,
+      role: "candidate",
+      location: "Lahore",
+      skills: ["React", "Node.js", "PostgreSQL"],
+      resume: "https://example.com/resume/bilal.pdf",
     },
-    {
-      job: jobs[3]._id,
-      candidate: createdCandidates[1]._id,
-      coverLetter: "Portfolio attached, 4 years of product design.",
-      status: "Applied",
+  });
+
+  const sana = await prisma.user.create({
+    data: {
+      name: "Sana Malik",
+      email: "sana@jobify.com",
+      password,
+      role: "candidate",
+      location: "Islamabad",
+      skills: ["Figma", "UI Design", "CSS"],
     },
-  ]);
+  });
+
+  const jobs = [];
+  for (const template of jobTemplates) {
+    jobs.push(
+      await prisma.job.create({
+        data: { ...template, company: recruiter.company, recruiterId: recruiter.id },
+      })
+    );
+  }
+
+  await prisma.application.createMany({
+    data: [
+      {
+        jobId: jobs[0].id,
+        candidateId: bilal.id,
+        resume: bilal.resume,
+        coverLetter: "I have 3 years of React experience and would love to join.",
+        status: "Shortlisted",
+      },
+      {
+        jobId: jobs[1].id,
+        candidateId: bilal.id,
+        coverLetter: "Strong Node and PostgreSQL background.",
+        status: "Interview",
+      },
+      {
+        jobId: jobs[3].id,
+        candidateId: sana.id,
+        coverLetter: "Portfolio attached, 4 years of product design.",
+        status: "Applied",
+      },
+    ],
+  });
 
   console.log("Seed complete");
+  console.log(`  ${jobs.length} jobs, 3 users, 3 applications`);
   console.log("  Recruiter: recruiter@jobify.com / password123");
   console.log("  Candidate: candidate@jobify.com / password123");
-
-  await mongoose.connection.close();
-  process.exit(0);
 };
 
-seed().catch(async (error) => {
-  console.error(`Seed failed: ${error.message}`);
-  await mongoose.connection.close();
-  process.exit(1);
-});
+seed()
+  .catch((error) => {
+    console.error(`Seed failed: ${error.message}`);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

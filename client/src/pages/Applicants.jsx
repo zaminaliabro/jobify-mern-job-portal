@@ -52,7 +52,7 @@ const Applicants = () => {
     try {
       await applicationApi.updateStatus(applicationId, status);
       setApplications((prev) =>
-        prev.map((app) => (app._id === applicationId ? { ...app, status } : app))
+        prev.map((app) => (app.id === applicationId ? { ...app, status } : app))
       );
     } catch (err) {
       setError(getErrorMessage(err));
@@ -136,7 +136,7 @@ const Applicants = () => {
           ) : (
             <div className="space-y-4">
               {visible.map((app) => (
-                <article key={app._id} className="card-p">
+                <article key={app.id} className="card-p">
                   <div className="flex flex-wrap items-start gap-4">
                     <Avatar name={app.candidate?.name || "?"} size="md" />
 
@@ -208,8 +208,8 @@ const Applicants = () => {
                       <select
                         className="input w-40 py-1.5 text-[13px]"
                         value={app.status}
-                        disabled={savingId === app._id}
-                        onChange={(e) => handleStatusChange(app._id, e.target.value)}
+                        disabled={savingId === app.id}
+                        onChange={(e) => handleStatusChange(app.id, e.target.value)}
                       >
                         {APPLICATION_STATUSES.map((status) => (
                           <option key={status} value={status}>

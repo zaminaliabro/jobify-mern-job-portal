@@ -1,21 +1,39 @@
-import Application, { APPLICATION_STATUSES } from "../models/Application.js";
-import Job from "../models/Job.js";
+import prisma from "../config/db.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { APPLICATION_STATUSES } from "../constants.js";
+
+const candidateSelect = {
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    skills: true,
+    location: true,
+    resume: true,
+    bio: true,
+  },
+};
+
+// Turn [{ status, _count }] into a full zero-filled map.
+const tallyByStatus = (groups) => {
+  const byStatus = Object.fromEntries(APPLICATION_STATUSES.map((s) => [s, 0]));
+  groups.forEach((g) => (byStatus[g.status] = g._count._all));
+  return byStatus;
+};
 
 // @desc    Apply to a job
 // @route   POST /api/applications/:jobId
 // @access  Private (candidate)
 export const applyToJob = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.jobId);
+  const job = await prisma.job.findUnique({ where: { id: req.params.jobId } });
 
   if (!job) {
     res.status(404);
     throw new Error("Job not found");
   }
 
-  const already = await Application.findOne({
-    job: job._id,
-    candidate: req.user._id,
+  const already = await prisma.application.findUnique({
+    where: { jobId_candidateId: { jobId: job.id, candidateId: req.user.id } },
   });
 
   if (already) {
@@ -23,11 +41,13 @@ export const applyToJob = asyncHandler(async (req, res) => {
     throw new Error("You have already applied to this job");
   }
 
-  const application = await Application.create({
-    job: job._id,
-    candidate: req.user._id,
-    resume: req.body.resume || req.user.resume,
-    coverLetter: req.body.coverLetter || "",
+  const application = await prisma.application.create({
+    data: {
+      jobId: job.id,
+      candidateId: req.user.id,
+      resume: req.body.resume || req.user.resume || "",
+      coverLetter: req.body.coverLetter || "",
+    },
   });
 
   res.status(201).json({ success: true, application });
@@ -37,12 +57,24 @@ export const applyToJob = asyncHandler(async (req, res) => {
 // @route   GET /api/applications/my
 // @access  Private (candidate)
 export const getMyApplications = asyncHandler(async (req, res) => {
-  const applications = await Application.find({ candidate: req.user._id })
-    .populate({
-      path: "job",
-      select: "title company location jobType salary category recruiter",
-    })
-    .sort({ createdAt: -1 });
+  const applications = await prisma.application.findMany({
+    where: { candidateId: req.user.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      job: {
+        select: {
+          id: true,
+          title: true,
+          company: true,
+          location: true,
+          jobType: true,
+          salary: true,
+          category: true,
+          recruiterId: true,
+        },
+      },
+    },
+  });
 
   res.json({ success: true, count: applications.length, applications });
 });
@@ -51,26 +83,28 @@ export const getMyApplications = asyncHandler(async (req, res) => {
 // @route   GET /api/applications/job/:jobId
 // @access  Private (owner recruiter)
 export const getJobApplications = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.jobId);
+  const job = await prisma.job.findUnique({ where: { id: req.params.jobId } });
 
   if (!job) {
     res.status(404);
     throw new Error("Job not found");
   }
 
-  if (job.recruiter.toString() !== req.user._id.toString()) {
+  if (job.recruiterId !== req.user.id) {
     res.status(403);
     throw new Error("Not authorized to view applicants for this job");
   }
 
-  const applications = await Application.find({ job: job._id })
-    .populate("candidate", "name email skills location resume bio")
-    .sort({ createdAt: -1 });
+  const applications = await prisma.application.findMany({
+    where: { jobId: job.id },
+    orderBy: { createdAt: "desc" },
+    include: { candidate: candidateSelect },
+  });
 
   res.json({
     success: true,
     count: applications.length,
-    job: { _id: job._id, title: job.title, company: job.company },
+    job: { id: job.id, title: job.title, company: job.company },
     applications,
   });
 });
@@ -86,36 +120,42 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
     throw new Error(`Status must be one of: ${APPLICATION_STATUSES.join(", ")}`);
   }
 
-  const application = await Application.findById(req.params.id).populate("job");
+  const existing = await prisma.application.findUnique({
+    where: { id: req.params.id },
+    include: { job: { select: { recruiterId: true } } },
+  });
 
-  if (!application) {
+  if (!existing) {
     res.status(404);
     throw new Error("Application not found");
   }
 
-  if (application.job.recruiter.toString() !== req.user._id.toString()) {
+  if (existing.job.recruiterId !== req.user.id) {
     res.status(403);
     throw new Error("Not authorized to update this application");
   }
 
-  application.status = status;
-  await application.save();
+  const application = await prisma.application.update({
+    where: { id: req.params.id },
+    data: { status },
+    include: { candidate: candidateSelect },
+  });
 
   res.json({ success: true, application });
 });
 
-// @desc    Dashboard stats for current user (role aware)
+// @desc    Role-aware dashboard stats
 // @route   GET /api/applications/stats
 // @access  Private
 export const getStats = asyncHandler(async (req, res) => {
   if (req.user.role === "candidate") {
-    const rows = await Application.aggregate([
-      { $match: { candidate: req.user._id } },
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]);
+    const groups = await prisma.application.groupBy({
+      by: ["status"],
+      where: { candidateId: req.user.id },
+      _count: { _all: true },
+    });
 
-    const byStatus = Object.fromEntries(APPLICATION_STATUSES.map((s) => [s, 0]));
-    rows.forEach((r) => (byStatus[r._id] = r.count));
+    const byStatus = tallyByStatus(groups);
 
     return res.json({
       success: true,
@@ -132,22 +172,22 @@ export const getStats = asyncHandler(async (req, res) => {
     });
   }
 
-  const jobs = await Job.find({ recruiter: req.user._id }).select("_id");
-  const jobIds = jobs.map((j) => j._id);
-
-  const rows = await Application.aggregate([
-    { $match: { job: { $in: jobIds } } },
-    { $group: { _id: "$status", count: { $sum: 1 } } },
+  const [jobsPosted, groups] = await Promise.all([
+    prisma.job.count({ where: { recruiterId: req.user.id } }),
+    prisma.application.groupBy({
+      by: ["status"],
+      where: { job: { recruiterId: req.user.id } },
+      _count: { _all: true },
+    }),
   ]);
 
-  const byStatus = Object.fromEntries(APPLICATION_STATUSES.map((s) => [s, 0]));
-  rows.forEach((r) => (byStatus[r._id] = r.count));
+  const byStatus = tallyByStatus(groups);
 
   res.json({
     success: true,
     role: "recruiter",
     stats: {
-      jobsPosted: jobs.length,
+      jobsPosted,
       totalApplicants: Object.values(byStatus).reduce((a, b) => a + b, 0),
       shortlisted: byStatus.Shortlisted,
       interview: byStatus.Interview,
@@ -162,12 +202,14 @@ export const getStats = asyncHandler(async (req, res) => {
 // @route   GET /api/applications/recruiter/all
 // @access  Private (recruiter)
 export const getRecruiterApplications = asyncHandler(async (req, res) => {
-  const jobs = await Job.find({ recruiter: req.user._id }).select("_id");
-
-  const applications = await Application.find({ job: { $in: jobs.map((j) => j._id) } })
-    .populate("candidate", "name email skills location resume")
-    .populate("job", "title company location")
-    .sort({ createdAt: -1 });
+  const applications = await prisma.application.findMany({
+    where: { job: { recruiterId: req.user.id } },
+    orderBy: { createdAt: "desc" },
+    include: {
+      candidate: candidateSelect,
+      job: { select: { id: true, title: true, company: true, location: true } },
+    },
+  });
 
   res.json({ success: true, count: applications.length, applications });
 });

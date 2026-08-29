@@ -18,7 +18,7 @@ const JobCard = ({ job }) => (
 
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-[15px] font-semibold text-ink-900 transition group-hover:text-brand-700">
-          <Link to={`/jobs/${job._id}`} className="before:absolute before:inset-0">
+          <Link to={`/jobs/${job.id}`} className="before:absolute before:inset-0">
             {job.title}
           </Link>
         </h3>

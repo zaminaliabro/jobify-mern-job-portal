@@ -5,7 +5,9 @@ services:
     plan: free
     region: oregon
     rootDir: server
-    buildCommand: npm install
+    # postinstall runs `prisma generate`; migrate deploy applies committed
+    # migrations to the Supabase database before the service starts.
+    buildCommand: npm install && npx prisma migrate deploy
     startCommand: npm start
     healthCheckPath: /
     envVars:
@@ -20,9 +22,12 @@ services:
         value: 7d
 
       # Set these in the Render dashboard after the first deploy.
-      #   MONGO_URI  -> your MongoDB Atlas connection string
-      #   CLIENT_URL -> your Vercel URL (comma-separated for several origins)
-      - key: MONGO_URI
+      #   DATABASE_URL -> Supabase pooled connection string (port 6543)
+      #   DIRECT_URL   -> Supabase direct connection string (port 5432)
+      #   CLIENT_URL   -> your Vercel URL (comma-separated for several origins)
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
         sync: false
       - key: CLIENT_URL
         sync: false
