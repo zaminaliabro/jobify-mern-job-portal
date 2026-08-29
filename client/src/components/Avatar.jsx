@@ -1,13 +1,14 @@
 import { initials } from "../utils/format.js";
 
 // Deterministic tint per name so the same company always gets the same colour.
+// Alpha fills keep these legible on either theme.
 const tints = [
-  "bg-brand-100 text-brand-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-violet-100 text-violet-700",
-  "bg-rose-100 text-rose-700",
-  "bg-cyan-100 text-cyan-700",
+  "bg-brand-500/15 text-brand-600 dark:text-brand-300",
+  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
 ];
 
 const tintFor = (name = "") => {

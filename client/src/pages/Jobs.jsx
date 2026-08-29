@@ -346,10 +346,10 @@ const Jobs = () => {
       {drawerOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-ink-900/40"
+            className="absolute inset-0 bg-slate-900/50"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute inset-y-0 right-0 flex w-[19rem] flex-col bg-white shadow-pop">
+          <div className="absolute inset-y-0 right-0 flex w-[19rem] flex-col bg-surface shadow-pop">
             <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
               <h2 className="text-sm font-semibold text-ink-900">Filters</h2>
               <button onClick={() => setDrawerOpen(false)} className="btn-ghost btn-sm">

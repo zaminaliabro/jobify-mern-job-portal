@@ -2,15 +2,15 @@ import { AlertIcon, CheckCircleIcon } from "./Icons.jsx";
 
 const variants = {
   error: {
-    box: "border-rose-200 bg-rose-50 text-rose-700",
+    box: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
     Icon: AlertIcon,
   },
   success: {
-    box: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    box: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     Icon: CheckCircleIcon,
   },
   info: {
-    box: "border-brand-200 bg-brand-50 text-brand-700",
+    box: "border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-300",
     Icon: AlertIcon,
   },
 };

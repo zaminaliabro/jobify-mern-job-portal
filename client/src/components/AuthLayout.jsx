@@ -20,7 +20,7 @@ const AuthLayout = ({ title, subtitle, children }) => (
     </div>
 
     {/* ---------- brand side ---------- */}
-    <div className="relative hidden overflow-hidden bg-ink-900 lg:flex lg:items-center">
+    <div className="relative hidden overflow-hidden bg-slate-900 lg:flex lg:items-center">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(40rem_25rem_at_70%_20%,theme(colors.brand.800),transparent)]"
@@ -40,7 +40,7 @@ const AuthLayout = ({ title, subtitle, children }) => (
 
         <ul className="mt-8 space-y-3.5">
           {highlights.map((line) => (
-            <li key={line} className="flex items-start gap-3 text-[15px] text-ink-300">
+            <li key={line} className="flex items-start gap-3 text-[15px] text-slate-300">
               <CheckCircleIcon size={18} className="mt-0.5 shrink-0 text-brand-400" />
               {line}
             </li>

@@ -3,16 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="Jobify — find your next role. Browse jobs, apply in one click, and track every application."
     />
+
+    <!-- Apply the stored theme before first paint, so dark-mode visitors never
+         see a flash of the light theme while React boots. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("jobify_theme");
+          var dark =
+            saved === "dark" ||
+            (saved !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Inter as a variable font: one file covers every weight, and opsz lets
+         the glyphs adapt between body copy and display sizes. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap"
       rel="stylesheet"
     />
+
     <title>Jobify — Find your next role</title>
   </head>
   <body>

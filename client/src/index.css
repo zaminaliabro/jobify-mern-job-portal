@@ -3,28 +3,99 @@
 @tailwind utilities;
 
 @layer base {
+  /* ---------- light theme ---------- */
+  :root {
+    color-scheme: light;
+
+    --surface: 255 255 255;
+
+    --ink-50: 248 250 252;
+    --ink-100: 241 245 249;
+    --ink-200: 226 232 240;
+    --ink-300: 203 213 225;
+    --ink-400: 148 163 184;
+    --ink-500: 100 116 139;
+    --ink-600: 71 85 105;
+    --ink-700: 51 65 85;
+    --ink-800: 30 41 59;
+    --ink-900: 15 23 42;
+
+    --brand-50: 239 245 255;
+    --brand-100: 219 232 254;
+    --brand-200: 191 215 254;
+
+    --shadow: 15 23 42;
+  }
+
+  /* ---------- dark theme ---------- */
+  .dark {
+    color-scheme: dark;
+
+    --surface: 17 26 43;
+
+    /* The neutral ramp flips: 50 is now the darkest, 900 the lightest, so
+       every existing `bg-ink-50` / `text-ink-900` keeps its meaning. */
+    --ink-50: 9 14 26;
+    --ink-100: 22 32 50;
+    --ink-200: 34 47 70;
+    --ink-300: 51 68 97;
+    --ink-400: 125 139 163;
+    --ink-500: 152 165 187;
+    --ink-600: 183 194 212;
+    --ink-700: 205 214 229;
+    --ink-800: 226 232 242;
+    --ink-900: 244 247 251;
+
+    --brand-50: 23 36 74;
+    --brand-100: 30 51 108;
+    --brand-200: 38 68 143;
+
+    --shadow: 0 0 0;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-ink-50 font-sans text-ink-700 antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-synthesis-weight: none;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss03";
+    font-optical-sizing: auto;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1,
   h2,
-  h3 {
-    @apply text-ink-900;
-    letter-spacing: -0.015em;
+  h3,
+  h4 {
+    @apply font-semibold text-ink-900;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    letter-spacing: -0.028em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Tabular figures keep dashboard numbers from jittering as they change. */
+  .tnum,
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
   }
 
   ::selection {
-    @apply bg-brand-100 text-brand-900;
+    @apply bg-brand-500/25;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-brand-500/45 ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--ink-50));
   }
 }
 
@@ -35,16 +106,16 @@
            disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800;
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-500 active:bg-brand-700;
   }
   .btn-outline {
-    @apply btn border border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50;
+    @apply btn border border-ink-200 bg-surface text-ink-700 hover:border-ink-300 hover:bg-ink-100;
   }
   .btn-ghost {
     @apply btn text-ink-600 hover:bg-ink-100 hover:text-ink-900;
   }
   .btn-danger {
-    @apply btn border border-red-200 bg-white text-red-600 hover:bg-red-50;
+    @apply btn border border-rose-500/30 bg-rose-500/5 text-rose-500 hover:bg-rose-500/15;
   }
   .btn-sm {
     @apply px-3 py-1.5 text-xs;
@@ -52,9 +123,9 @@
 
   /* ---------- form controls ---------- */
   .input {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-800
+    @apply w-full rounded-lg border border-ink-200 bg-surface px-3.5 py-2.5 text-sm text-ink-800
            placeholder:text-ink-400 transition
-           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
+           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15;
   }
   .label {
     @apply mb-1.5 block text-[13px] font-medium text-ink-700;
@@ -65,7 +136,7 @@
 
   /* ---------- surfaces ---------- */
   .card {
-    @apply rounded-xl border border-ink-200/80 bg-white shadow-card;
+    @apply rounded-xl border border-ink-200 bg-surface shadow-card;
   }
   .card-p {
     @apply card p-5 sm:p-6;
@@ -82,7 +153,7 @@
     @apply inline-flex items-center gap-1.5 text-[13px] text-ink-500;
   }
   .link {
-    @apply font-medium text-brand-600 transition hover:text-brand-700 hover:underline;
+    @apply font-medium text-brand-500 transition hover:text-brand-400 hover:underline;
   }
   .container-page {
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
@@ -90,10 +161,10 @@
 
   /* ---------- skeleton ---------- */
   .skeleton {
-    @apply relative overflow-hidden rounded-md bg-ink-200/70;
+    @apply relative overflow-hidden rounded-md bg-ink-200;
   }
   .skeleton::after {
-    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent;
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-ink-50/70 to-transparent;
     content: "";
     animation: shimmer 1.6s infinite;
   }

@@ -222,7 +222,7 @@ const RecruiterDashboard = ({ stats, jobs, onDelete }) => (
                 </Link>
                 <button
                   onClick={() => onDelete(job.id)}
-                  className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50"
+                  className="btn-ghost btn-sm text-rose-500 hover:bg-rose-500/10"
                   title="Delete job"
                 >
                   <TrashIcon size={15} />

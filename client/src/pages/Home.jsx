@@ -62,7 +62,7 @@ const Hero = ({ total }) => {
   };
 
   return (
-    <section className="relative overflow-hidden border-b border-ink-200/70 bg-white">
+    <section className="relative overflow-hidden border-b border-ink-200/70 bg-surface">
       {/* soft background wash */}
       <div
         aria-hidden="true"
@@ -88,7 +88,7 @@ const Hero = ({ total }) => {
 
           <form
             onSubmit={handleSubmit}
-            className="mx-auto mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl border border-ink-200 bg-white p-2 shadow-lift sm:flex-row"
+            className="mx-auto mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl border border-ink-200 bg-surface p-2 shadow-lift sm:flex-row"
           >
             <div className="relative flex-1">
               <SearchIcon
@@ -167,7 +167,7 @@ const Home = () => {
       <Hero total={total} />
 
       {/* ---------- stats strip ---------- */}
-      <section className="border-b border-ink-200/70 bg-white">
+      <section className="border-b border-ink-200/70 bg-surface">
         <div className="container-page grid grid-cols-3 divide-x divide-ink-100 py-6">
           {[
             { icon: BriefcaseIcon, value: total, label: "Open roles" },
@@ -269,7 +269,7 @@ const Home = () => {
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <IconCmp size={19} />
                   </span>
-                  <span className="text-xs font-bold text-ink-300">
+                  <span className="text-xs font-bold text-ink-400">
                     0{index + 1}
                   </span>
                 </div>
@@ -282,21 +282,21 @@ const Home = () => {
 
         {/* ---------- cta ---------- */}
         {!isAuthenticated && (
-          <section className="overflow-hidden rounded-2xl bg-ink-900 px-6 py-12 text-center sm:px-12">
+          <section className="overflow-hidden rounded-2xl bg-slate-900 px-6 py-12 text-center sm:px-12">
             <h2 className="text-2xl font-bold text-white">
               Ready to make your next move?
             </h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-ink-300">
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-300">
               Join as a candidate to apply in one click, or as a recruiter to post roles
               and manage applicants in one place.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link to="/register" className="btn bg-white text-ink-900 hover:bg-ink-100">
+              <Link to="/register" className="btn bg-surface text-ink-900 hover:bg-ink-100">
                 Create free account
               </Link>
               <Link
                 to="/jobs"
-                className="btn border border-white/25 text-white hover:bg-white/10"
+                className="btn border border-white/25 text-white hover:bg-surface/10"
               >
                 Browse jobs first
               </Link>

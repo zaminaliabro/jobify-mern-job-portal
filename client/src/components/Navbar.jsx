@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import Avatar from "./Avatar.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 import {
   BriefcaseIcon,
   ChevronDownIcon,
@@ -58,7 +59,7 @@ const UserMenu = ({ user, onLogout }) => {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-pop"
+          className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-surface shadow-pop"
         >
           <div className="border-b border-ink-100 px-4 py-3">
             <p className="truncate text-sm font-semibold text-ink-900">{user.name}</p>
@@ -90,7 +91,7 @@ const UserMenu = ({ user, onLogout }) => {
                 setOpen(false);
                 onLogout();
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-rose-500 hover:bg-rose-500/10"
             >
               <LogoutIcon size={16} />
               Logout
@@ -123,7 +124,7 @@ const Navbar = () => {
     }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-ink-200/70 bg-white/85 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-ink-200/70 bg-surface/85 backdrop-blur-md">
       <nav className="container-page flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <Logo />
@@ -140,6 +141,8 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
+
           {isRecruiter && (
             <Link to="/jobs/new" className="btn-primary btn-sm hidden sm:inline-flex">
               <PlusIcon size={15} />
@@ -171,7 +174,7 @@ const Navbar = () => {
       </nav>
 
       {mobileOpen && (
-        <div className="border-t border-ink-200/70 bg-white md:hidden">
+        <div className="border-t border-ink-200/70 bg-surface md:hidden">
           <div className="container-page flex flex-col gap-1 py-3">
             <NavLink to="/jobs" className={linkClass}>
               Browse jobs

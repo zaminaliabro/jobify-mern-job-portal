@@ -4,11 +4,11 @@ import { MapPinIcon, WalletIcon, ClockIcon } from "./Icons.jsx";
 import { formatSalary, timeAgo } from "../utils/format.js";
 
 const typeTone = {
-  "Full-time": "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  "Part-time": "bg-violet-50 text-violet-700 ring-violet-600/20",
-  Internship: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  Contract: "bg-cyan-50 text-cyan-700 ring-cyan-600/20",
-  Remote: "bg-brand-50 text-brand-700 ring-brand-600/20",
+  "Full-time": "bg-emerald-500/12 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+  "Part-time": "bg-violet-500/12 text-violet-600 ring-violet-500/25 dark:text-violet-400",
+  Internship: "bg-amber-500/12 text-amber-600 ring-amber-500/25 dark:text-amber-400",
+  Contract: "bg-cyan-500/12 text-cyan-600 ring-cyan-500/25 dark:text-cyan-400",
+  Remote: "bg-brand-500/12 text-brand-600 ring-brand-500/25 dark:text-brand-300",
 };
 
 const JobCard = ({ job }) => (
